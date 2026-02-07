@@ -7,7 +7,7 @@ import unicodedata
 EXCLUDED_WORDS = ['and', 'or', 'the', 'in', 'on', 'at', 'for', 'nor', 'but', 'to', 'so', 'a', 'an', 'as']
 
 # Allowed Translated Lists
-ALLOWED_EXTS = {'.mp3', '.png', '.wav', '.psd', '.mp4', '.jpg', 'txt'}
+ALLOWED_EXTS = {'.mp3', '.png', '.wav', '.psd', '.mp4', '.jpg', '.txt'}
 
 # Normalize full-width characters
 def normalize_text(text):
