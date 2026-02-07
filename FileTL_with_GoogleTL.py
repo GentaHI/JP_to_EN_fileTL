@@ -6,6 +6,9 @@ import unicodedata
 # List of conjunctions/articles to exclude from capitalization
 EXCLUDED_WORDS = ['and', 'or', 'the', 'in', 'on', 'at', 'for', 'nor', 'but', 'to', 'so', 'a', 'an', 'as']
 
+# Allowed Translated Lists
+ALLOWED_EXTS = {'.mp3', '.png', '.wav', '.psd', '.mp4', '.jpg', 'txt'}
+
 # Normalize full-width characters
 def normalize_text(text):
     return unicodedata.normalize('NFKC', text)
@@ -51,42 +54,81 @@ def capitalize_filename(name):
     # Join back into a single string with spaces
     return ''.join(result)
    
-# Main processing
-def process_files(directory):
-    directory = directory.replace('\\','/')
-    for filename in os.listdir(directory):
-        if filename.endswith("mp3") or filename.endswith("png") or filename.endswith("wav") or filename.endswith("jpg"):
-            if filename.endswith("mp3"):
-                file_extension = ".mp3"
-            elif filename.endswith("png"):
-                file_extension = ".png"
-            elif filename.endswith("wav"):
-                file_extension = ".wav"
-            elif filename.endswith("jpg"):
-                file_extension = ".jpg"
+
+def process_files(base_dir):
+    base_dir = base_dir.replace('\\', '/')
+
+    for root, _, files in os.walk(base_dir):
+        for filename in files:
+            ext = os.path.splitext(filename)[1].lower()
+            if ext not in ALLOWED_EXTS:
+                continue
+
             normalized = normalize_text(filename)
             name_without_ext = os.path.splitext(normalized)[0]
 
-            # Extract Japanese parts using regex
+            # split by - or _
             parts = re.split(r'[-_]', name_without_ext)
+
+            translated_parts = [
+                translate_text(part) if contains_japanese(part) else part
+                for part in parts
+            ]
+
+            translated_name = "_".join(
+                sanitize_filename(part) for part in translated_parts
+            )
+
+            translated_name = capitalize_filename(translated_name)
+
+            old_path = os.path.join(root, filename)
+            new_filename = translated_name + ext
+            new_path = os.path.join(root, new_filename)
+
+            if old_path != new_path:
+                print(f"Renaming file: {old_path} → {new_path}")
+                try:
+                    os.rename(old_path, new_path)
+                except Exception as e:
+                    print(f"Failed to rename file {old_path}: {e}")
+
+
+def rename_folders(base_dir):
+    base_dir = base_dir.replace('\\','/')
+    for root, dirs, _ in os.walk(base_dir, topdown=False):
+        for folder in dirs:
+            old_path = os.path.join(root, folder)
+
+            # normalize text folders
+            normalized = normalize_text(folder)
+            parts = re.split(r'[-_]', normalized)
+
+            #start translate
             translated_parts = [translate_text(part) if contains_japanese(part) else part for part in parts]
             translated_name = "_".join(sanitize_filename(part) for part in translated_parts)
-            translated_name = capitalize_filename(translated_name)
-            
-            old_path = os.path.join(directory, filename)
-            new_filename = translated_name + file_extension
-            new_path = os.path.join(directory, new_filename)
+            #translated_name = capitalize_filename(translated_name)
 
-            print(f"Renaming: {filename} -> {new_filename}")
-            os.rename(old_path, new_path)
+            #translated = translate_text(normalized)
+            #formatted = format_filename(translated)
+            new_path = os.path.join(root, translated_name)
+            if old_path != new_path:
+                try:
+                    os.rename(old_path, new_path)
+                    print(f"Renamed folder: {old_path} → {new_path}")
+                except Exception as e:
+                    print(f"Failed to rename folder {old_path}: {e}")
 
 # Run
 repeat_boolean = True
 
 while repeat_boolean == True:
     folder_path = input("Enter the directory: ").strip()
+    print("Renaming files...\n")
     process_files(folder_path)
-
-    check = input("Repeat? (input n/N to end) : ").strip()
+    print("Renaming folders...\n")
+    rename_folders(folder_path)
+    print("Rename completed...\n")
+    
+    check = input("\nRepeat? (input n/N to end) : ").strip()
     if check == 'n' or check == 'N' :
         repeat_boolean = False
