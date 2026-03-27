@@ -1,13 +1,16 @@
 import os
 import re
-from googletrans import Translator  # pip install googletrans==4.0.0-rc1
+import asyncio
+#from googletrans import Translator  # pip install googletrans==4.0.0-rc1
+from deep_translator import GoogleTranslator
 import unicodedata
 
 # List of conjunctions/articles to exclude from capitalization
 EXCLUDED_WORDS = ['and', 'or', 'the', 'in', 'on', 'at', 'for', 'nor', 'but', 'to', 'so', 'a', 'an', 'as']
 
 # Allowed Translated Lists
-ALLOWED_EXTS = {'.mp3', '.png', '.wav', '.psd', '.mp4', '.jpg', '.txt'}
+ALLOWED_EXTS = {'.mp3', '.png', '.wav', '.psd', '.mp4', '.jpg', '.txt', '.pdf'}
+translator = GoogleTranslator(source='ja', target='en')
 
 # Normalize full-width characters
 def normalize_text(text):
@@ -19,11 +22,11 @@ def contains_japanese(text):
 
 # Translate Japanese to English
 def translate_text(text):
-    translator = Translator()
     try:
-        return translator.translate(text, src='ja', dest='en').text
-    except:
-        return text  # fallback
+        return translator.translate(text)
+    except Exception as e:
+        print(f"Translation failed for '{text}': {e}")
+        return text
 
 def sanitize_filename(name):
     # Only remove ASCII-invalid characters, keep full-width versions (e.g., ？)
